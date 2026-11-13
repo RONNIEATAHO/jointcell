@@ -136,7 +136,7 @@ async function route(req, res) {
       const host = parsedOrigin.hostname;
       const local = ['localhost', '127.0.0.1', '::1'].includes(host);
       const joinBase = local ? `http://${localAddress()}:${PORT}` : parsedOrigin.origin;
-      room.joinUrl = `${joinBase}/?room=${gameCode}`;
+      room.joinUrl = `${joinBase}/join?room=${gameCode}`;
       return json(res, 201, { room: gameCode, token: room.hostToken, title, joinUrl: room.joinUrl });
     }
     if (url.pathname === '/api/join') {
@@ -232,7 +232,7 @@ async function route(req, res) {
     }
   }
   if (req.method === 'GET') {
-    const requested = url.pathname === '/' ? 'index.html' : url.pathname.slice(1);
+    const requested = url.pathname === '/' || url.pathname === '/join' ? 'index.html' : url.pathname.slice(1);
     const file = path.resolve(ROOT, requested);
     if (!file.startsWith(ROOT + path.sep) && file !== path.join(ROOT, 'index.html')) return json(res, 403, { error: 'Forbidden' });
     fs.readFile(file, (error, content) => {
