@@ -80,6 +80,7 @@ function publicState(room, player = null, host = false) {
     code: room.code, title: room.title, joinUrl: room.joinUrl, phase: room.phase, questionIndex: room.questionIndex,
     total: room.questions.length, duration: q?.duration || 0,
     questionChoices: host ? room.questions.map((item, index) => ({ index, text: item.text, firstTurn: item.firstTurn, asked: room.askedQuestions.has(index) })) : undefined,
+    questionMode: room.questionMode,
     remainingPct: room.phase === 'ready' ? 100 : room.deadline ? Math.max(0, Math.min(100, (room.deadline - now) / ((q?.duration || 1) * 10))) : 0,
     deadline: room.deadline, assigneeId: room.assigneeId,
     assigneeName: room.players.find(p => p.id === room.assigneeId)?.name || '',
@@ -130,7 +131,7 @@ async function route(req, res) {
         return { text, options, correct, duration, firstTurn: Boolean(q.firstTurn) };
       });
       const gameCode = code();
-      const room = { code: gameCode, title, joinUrl: '', questions, hostToken: id(24), players: [], phase: 'lobby', questionIndex: -1, deadline: 0, phaseStartedAt: 0, assigneeId: null, assignedAttempts: 0, answered: new Set(), attempts: [], askedQuestions: new Set() };
+      const room = { code: gameCode, title, joinUrl: '', questions, hostToken: id(24), players: [], phase: 'lobby', questionIndex: -1, questionMode: null, deadline: 0, phaseStartedAt: 0, assigneeId: null, assignedAttempts: 0, answered: new Set(), attempts: [], askedQuestions: new Set() };
       rooms.set(gameCode, room);
       const origin = req.headers.origin || `http://${req.headers.host}`;
       const parsedOrigin = new URL(origin);
@@ -154,11 +155,14 @@ async function route(req, res) {
     if (url.pathname === '/api/start') {
       const { room, host } = roomFor(req, data.room); if (!host) throw Object.assign(new Error('Only the host can start the quiz.'), { status: 403 });
       if (room.phase !== 'lobby' || !room.players.length) throw Object.assign(new Error('Wait for at least one participant before starting.'), { status: 409 });
-      room.phase = 'selecting'; return json(res, 200, { ok: true });
+      room.questionMode = data.mode === 'organizer' ? 'organizer' : 'sequential';
+      if (room.questionMode === 'organizer') room.phase = 'selecting';
+      else { room.questionIndex = 0; room.askedQuestions.add(0); beginQuestion(room, Date.now(), room.players[0].id); }
+      return json(res, 200, { ok: true });
     }
     if (url.pathname === '/api/select-question') {
       const { room, host } = roomFor(req, data.room); if (!host) throw Object.assign(new Error('Only the host can choose a question.'), { status: 403 });
-      if (!['lobby', 'selecting'].includes(room.phase)) throw Object.assign(new Error('Finish the active question before choosing another.'), { status: 409 });
+      if (room.questionMode !== 'organizer' || room.phase !== 'selecting') throw Object.assign(new Error('Question selection is not available right now.'), { status: 409 });
       const questionIndex = Number(data.questionIndex);
       if (!Number.isInteger(questionIndex) || questionIndex < 0 || questionIndex >= room.questions.length) throw Object.assign(new Error('Choose a valid question.'), { status: 400 });
       if (room.askedQuestions.has(questionIndex)) throw Object.assign(new Error('That question has already been asked.'), { status: 409 });
@@ -228,7 +232,11 @@ async function route(req, res) {
     if (url.pathname === '/api/next') {
       const { room, host } = roomFor(req, data.room); if (!host) throw Object.assign(new Error('Only the host can move to the next question.'), { status: 403 });
       if (!['open', 'locked'].includes(room.phase)) throw Object.assign(new Error('Finish the current question first.'), { status: 409 });
-      room.phase = 'selecting'; room.deadline = 0; room.assigneeId = null;
+      if (room.questionMode === 'sequential') {
+        const nextIndex = room.questionIndex + 1;
+        if (nextIndex >= room.questions.length) { room.phase = 'finished'; room.deadline = 0; }
+        else { room.questionIndex = nextIndex; room.askedQuestions.add(nextIndex); beginQuestion(room, Date.now(), room.players[0]?.id || null); }
+      } else { room.phase = 'selecting'; room.deadline = 0; room.assigneeId = null; }
       return json(res, 200, { ok: true });
     }
     if (url.pathname === '/api/end') {

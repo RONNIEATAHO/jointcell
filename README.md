@@ -29,7 +29,8 @@ Install the dependencies once with `npm install`. QR codes are generated locally
 ## Current MVP behavior
 
 - The host writes questions, four answers, the correct answer, a per-question duration, and whether the question has an exclusive first turn.
-- The host chooses any not-yet-asked question, assigns a participant when that question has an exclusive first turn, and opens it. Questions can be asked in any order.
+- The host first sees the participant lobby and chooses a question order before starting: sequential or organizer-selected.
+- In sequential mode, questions run in order. In organizer-selected mode, the host chooses any not-yet-asked question after starting, assigns a participant when it has an exclusive first turn, and opens it.
 - On an exclusive first turn, the assigned learner gets one locked attempt. A correct answer locks the question; an incorrect answer opens it to the rest of the room immediately, with the assigned learner excluded.
 - Correct answers earn up to 1,000 points, with points decreasing as time runs out.
 - Hosts can import text-based PDFs in the browser. The importer recognizes numbered questions, four A–D choices, inline `Answer: B` lines, or an `Answer Key` section with one numbered answer per line. Imported questions are editable; missing answer keys are flagged for review. Scanned/image-only PDFs and unusual layouts need OCR or manual editing.
