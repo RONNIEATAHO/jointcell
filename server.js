@@ -40,6 +40,14 @@ function roomFor(req, codeValue) {
   throw Object.assign(new Error('This session has expired. Rejoin the game.'), { status: 401 });
 }
 function lockQuestion(room) {
+  if (room.phase === 'open') {
+    for (const attempt of room.attempts) {
+      if (attempt.correct) {
+        const player = room.players.find(p => p.id === attempt.playerId);
+        if (player) player.score += attempt.points;
+      }
+    }
+  }
   room.phase = 'locked';
   room.deadline = 0;
 }
@@ -87,7 +95,7 @@ function publicState(room, player = null, host = false) {
     answeredCount, players: room.players.map(p => ({ id: p.id, name: p.name, score: p.score })),
     question: q ? { text: q.text, options: q.options, duration: q.duration, firstTurn: q.firstTurn, ...(host ? { correct: q.correct } : {}) } : null,
     me: player ? { id: player.id, name: player.name, score: player.score, answered: room.answered.has(player.id) } : null,
-    myResult: playerAttempts.length ? playerAttempts[playerAttempts.length - 1] : null,
+    myResult: room.phase === 'locked' && playerAttempts.length ? playerAttempts[playerAttempts.length - 1] : null,
     results: host && room.phase === 'locked' ? {
       correct: q?.correct,
       counts: (q?.options || []).map((_, index) => room.attempts.filter(a => a.choice === index).length),
@@ -231,16 +239,13 @@ async function route(req, res) {
       let points = 0;
       if (choice === q.correct) {
         points = Math.max(100, Math.round(1000 * Math.max(0, room.deadline - Date.now()) / (q.duration * 1000)));
-        player.score += points;
       }
       room.attempts.push({ playerId: player.id, choice, correct: choice === q.correct, points });
-      const eligible = room.players.filter(p => p.id !== room.assigneeId);
-      if (eligible.every(p => room.answered.has(p.id))) lockQuestion(room);
-      return json(res, 200, { ok: true, points, correct: choice === q.correct });
+      return json(res, 200, { ok: true, submitted: true });
     }
     if (url.pathname === '/api/next') {
       const { room, host } = roomFor(req, data.room); if (!host) throw Object.assign(new Error('Only the host can move to the next question.'), { status: 403 });
-      if (!['open', 'locked'].includes(room.phase)) throw Object.assign(new Error('Finish the current question first.'), { status: 409 });
+      if (room.phase !== 'locked') throw Object.assign(new Error('Wait for the question timer to finish before continuing.'), { status: 409 });
       if (room.questionMode === 'sequential') {
         const nextIndex = room.questionIndex + 1;
         if (nextIndex >= room.questions.length) { room.phase = 'finished'; room.deadline = 0; }
@@ -262,7 +267,6 @@ async function route(req, res) {
       if (room.phase === 'question' && room.assigneeId === player.id) {
         room.phase = 'open'; room.phaseStartedAt = Date.now(); room.deadline = Date.now() + room.questions[room.questionIndex].duration * 1000;
       }
-      if (room.phase === 'open' && room.players.filter(p => p.id !== room.assigneeId).every(p => room.answered.has(p.id))) lockQuestion(room);
       return json(res, 200, { ok: true });
     }
   }

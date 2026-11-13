@@ -25,11 +25,12 @@ function renderResultsPage(s){
   renderedResultKey=key;
   document.body.classList.remove('answer-correct','answer-wrong');
   if(!isHost&&s.myResult)document.body.classList.add(s.myResult.correct?'answer-correct':'answer-wrong');
-  $('resultHeading').textContent=isHost?`Question ${s.questionIndex+1} results`:s.myResult?.correct?'Correct!':'Not quite!';
+  $('resultHeading').textContent=isHost?`Question ${s.questionIndex+1} results`:s.myResult?.correct?'Correct!':'Wrong answer';
   $('resultSub').textContent=isHost?'Review the correct answer and participant responses before moving on.':'';
   $('resultScore').previousElementSibling.textContent=isHost?'ROOM CODE':'YOUR SCORE';$('resultScore').textContent=isHost?s.code:(s.me?.score||0);
-  $('resultContent').innerHTML=isHost?resultsPanel(s,true):`<section class="participant-result ${s.myResult?.correct?'is-correct':s.myResult?'is-wrong':'no-answer'}" role="status" aria-live="polite"><div class="feedback-emoji" aria-hidden="true">${s.myResult?.correct?'\u{1F389}':s.myResult?'\u{1F622}':'\u{23F1}'}</div><div class="position-badge">Your position <strong>#${rank||'-'}</strong><span>of ${s.players.length} participants</span></div></section>`;
-  renderLeaderboard('resultsLeaderboard',s.players);
+  $('resultContent').innerHTML=isHost?resultsPanel(s,true):`<section class="participant-result ${s.myResult?.correct?'is-correct':s.myResult?'is-wrong':'no-answer'}" role="status" aria-live="polite"><div class="feedback-emoji" aria-hidden="true">${s.myResult?.correct?'\u{1F389}':s.myResult?'\u{274C}':'\u{23F1}'}</div><div class="position-badge">Your position <strong>#${rank||'-'}</strong><span>of ${s.players.length} participants</span></div></section>`;
+  if(isHost)renderLeaderboard('resultsLeaderboard',s.players);
+  $('resultsPage').querySelector('.session-grid aside').classList.toggle('hidden',!isHost);
   $('resultActions').innerHTML=isHost?`<button class="btn primary" id="resultsNext">${s.questionMode==='sequential'?'Next question ->':'Choose another question ->'}</button>`:'<span class="note">Waiting for the host to continue the quiz...</span>';
   updateBackButton();
   if($('resultsNext'))$('resultsNext').onclick=async()=>{try{await api('next',{room});await poll()}catch(e){alertMsg(e.message)}};
@@ -80,7 +81,7 @@ function renderHostQuestion(s){
     assignment=`<div class="host-controls"><label style="font-size:11px;align-self:center">First turn assigned to</label><select id="assignPlayer">${opts}</select><button class="btn outline" id="setAssignee">Set learner</button></div>`;
   }
   const answers=q.options.map((a,i)=>`<div class="answer ${s.phase==='locked'&&i===q.correct?'good':''}"><span class="letter">${'ABCD'[i]}</span>${esc(a)}</div>`).join('');
-  $('hostLiveArea').innerHTML=`<div class="row-between"><div class="tag">QUESTION ${s.questionIndex+1} OF ${s.total}</div><div class="timer" data-deadline="${s.deadline}">${s.deadline?timeLeft(s.deadline):'Ready'}</div></div><div class="bar"><i style="width:${s.remainingPct}%"></i></div><div class="livequestion">${esc(q.text)}</div><div class="answers">${answers}</div><div class="status ${s.phase==='locked'?'success':s.phase==='open'?'warn':'info'}">${s.phase==='ready'?'The assigned participant is ready. Start their first turn when you are ready.':s.phase==='question'?`First turn: <b>${esc(s.assigneeName||'Choose a learner')}</b>. Other participants are waiting.`:s.phase==='open'?q.firstTurn?`The question is open to the room; ${esc(s.assigneeName||'the assigned participant')} cannot answer again.`:'The question is open to the room.':'Correct answer - this question is locked.'}</div>${s.phase==='locked'?resultsPanel(s,true):''}${assignment}<div class="host-controls">${s.phase==='ready'?'<button class="btn primary" id="beginTurn">Start first turn -></button>':''}${s.phase==='question'?'<button class="btn primary" id="hostReveal">Open to the room now</button>':''}${s.phase==='open'||s.phase==='locked'?`<button class="btn primary" id="nextQuestion">${nextLabel}</button>`:''}<span class="note" style="align-self:center">${s.answeredCount} answered</span></div>`;
+  $('hostLiveArea').innerHTML=`<div class="row-between"><div class="tag">QUESTION ${s.questionIndex+1} OF ${s.total}</div><div class="timer" data-deadline="${s.deadline}">${s.deadline?timeLeft(s.deadline):'Ready'}</div></div><div class="bar"><i style="width:${s.remainingPct}%"></i></div><div class="livequestion">${esc(q.text)}</div><div class="answers">${answers}</div><div class="status ${s.phase==='locked'?'success':s.phase==='open'?'warn':'info'}">${s.phase==='ready'?'The assigned participant is ready. Start their first turn when you are ready.':s.phase==='question'?`First turn: <b>${esc(s.assigneeName||'Choose a learner')}</b>. Other participants are waiting.`:s.phase==='open'?q.firstTurn?`The question is open to the room; ${esc(s.assigneeName||'the assigned participant')} cannot answer again.`:'The question is open to the room.':'Correct answer - this question is locked.'}</div>${s.phase==='locked'?resultsPanel(s,true):''}${assignment}<div class="host-controls">${s.phase==='ready'?'<button class="btn primary" id="beginTurn">Start first turn -></button>':''}${s.phase==='question'?'<button class="btn primary" id="hostReveal">Open to the room now</button>':''}${s.phase==='locked'?`<button class="btn primary" id="nextQuestion">${nextLabel}</button>`:''}<span class="note" style="align-self:center">${s.answeredCount} answered</span></div>`;
   if($('assignPlayer'))$('assignPlayer').onchange=e=>pendingAssignee=e.target.value;
   if($('setAssignee'))$('setAssignee').onclick=async()=>{try{await api('assign',{room,playerId:pendingAssignee||$('assignPlayer').value});pendingAssignee=null;await poll()}catch(e){alertMsg(e.message)}};
   if($('beginTurn'))$('beginTurn').onclick=async()=>{try{await api('begin-turn',{room});pendingAssignee=null}catch(e){alertMsg(e.message)}};
@@ -89,7 +90,6 @@ function renderHostQuestion(s){
 }
 function renderPlayer(s){
   $('playerScore').textContent=s.me?.score||0;
-  renderLeaderboard('playerLeaderboard',s.players);
   const area=$('playerArea');
   if(s.phase==='selecting'||s.phase==='modeSelect'){area.innerHTML='<div class="empty">The organizer is preparing the next question...</div>';return}
   if(s.phase==='lobby'||s.phase==='ready'){
@@ -117,14 +117,15 @@ function renderPlayer(s){
           :`<div class="status ${s.phase==='open'?'warn':'info'}">${s.phase==='open'?'Lock your answer before time runs out.':`Your turn | ${s.duration} seconds`}</div>`;
   const options=q.options.map((a,i)=>`<button class="answer ${chosen===i?'picked':''} ${s.phase==='locked'&&i===q.correct?'good':''}" data-choice="${i}" ${!eligible||s.me.answered?'disabled':''}><span class="letter">${'ABCD'[i]}</span>${esc(a)}</button>`).join('');
   const hideTimer=s.phase==='question'&&!isAssignee;
-  area.innerHTML=`<div class="row-between"><div class="tag">${s.phase==='open'?'ROOM ANSWER':'QUESTION '+(s.questionIndex+1)+' OF '+s.total}</div>${hideTimer?'':'<div class="timer" data-deadline="'+s.deadline+'">'+timeLeft(s.deadline)+'</div>'}</div>${hideTimer?'':'<div class="bar"><i style="width:'+s.remainingPct+'%"></i></div>'}<div class="livequestion">${esc(q.text)}</div><div class="answers">${options}</div>${message}${s.phase==='open'&&s.me.answered&&s.myResult?`<div class="status feedback-pop ${s.myResult.correct?'success correct-feedback':'warn wrong-feedback'}" role="status" aria-live="polite">${s.myResult.correct?'\u{1F389} Correct!':'\u{1F622} Wrong answer'}</div>`:''}<div class="row-between" style="margin-top:14px"><span class="note" id="earnedMessage"></span><button id="sendAnswer" class="btn primary" ${!eligible||s.me.answered||chosen===null?'disabled':''}>Lock in answer -></button></div>`;
+  area.innerHTML=`<div class="row-between"><div class="tag">${s.phase==='open'?'ROOM ANSWER':'QUESTION '+(s.questionIndex+1)+' OF '+s.total}</div>${hideTimer?'':'<div class="timer" data-deadline="'+s.deadline+'">'+timeLeft(s.deadline)+'</div>'}</div>${hideTimer?'':'<div class="bar"><i style="width:'+s.remainingPct+'%"></i></div>'}<div class="livequestion">${esc(q.text)}</div><div class="answers">${options}</div>${message}${s.phase==='open'&&s.me.answered&&s.myResult?`<div class="status feedback-pop ${s.myResult.correct?'success correct-feedback':'warn wrong-feedback'}" role="status" aria-live="polite">${s.myResult.correct?'\u{1F389} Correct!':'\u{274C} Wrong answer'}</div>`:''}<div class="row-between" style="margin-top:14px"><span class="note" id="earnedMessage"></span><button id="sendAnswer" class="btn primary" ${!eligible||s.me.answered||chosen===null?'disabled':''}>Lock in answer -></button></div>`;
   area.querySelectorAll('[data-choice]').forEach(b=>b.onclick=()=>{chosen=Number(b.dataset.choice);renderPlayer(s)});
   $('sendAnswer').onclick=async()=>{
     try{
       const out=await api('answer',{room,choice:chosen});
       chosen=null;
-      if(out.correct)alertMsg('\u{1F389} Correct!');
-      else alertMsg('\u{1F622} Wrong answer.');
+      if(out.submitted)alertMsg('Answer locked. Results will show when time is up.');
+      else if(out.correct)alertMsg('\u{1F389} Correct!');
+      else alertMsg('\u{274C} Wrong answer.');
       await poll();
     }catch(e){alertMsg(e.message)}
   };
