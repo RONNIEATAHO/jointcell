@@ -105,12 +105,12 @@ async function route(req, res) {
   if (req.method === 'GET' && url.pathname === '/api/qr') {
     const room = rooms.get(String(url.searchParams.get('room') || '').toUpperCase());
     if (!room) return json(res, 404, { error: 'This room has expired. Create a new quiz to get a fresh QR code.' });
-    const svg = await QRCode.toString(room.joinUrl, {
-      type: 'svg', errorCorrectionLevel: 'M', margin: 4, width: 480,
-      color: { dark: '#241642', light: '#FFFFFF' }
+    const png = await QRCode.toBuffer(room.joinUrl, {
+      type: 'png', errorCorrectionLevel: 'H', margin: 5, width: 640,
+      color: { dark: '#000000', light: '#FFFFFF' }
     });
-    res.writeHead(200, { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'no-store' });
-    return res.end(svg);
+    res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'no-store' });
+    return res.end(png);
   }
   if (req.method === 'GET' && url.pathname === '/api/state') {
     const { room, host, player } = roomFor(req, url.searchParams.get('room'));
