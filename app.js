@@ -21,8 +21,6 @@ function renderHost(s){
   $('hostCode').textContent=s.code;
   if(!$('qrImage').src.endsWith('/api/qr?room='+encodeURIComponent(s.code)))$('qrImage').src='/api/qr?room='+encodeURIComponent(s.code);
   $('joinAddress').textContent=s.joinUrl;
-  $('lobbyCount').textContent=`${s.players.length} participant${s.players.length===1?'':'s'} in the room`;
-  $('lobbyPlayers').innerHTML=s.players.length?s.players.map(p=>`<div class="player-chip"><span class="bubble">${esc(p.name.slice(0,2).toUpperCase())}</span>${esc(p.name)} <span style="margin-left:auto;color:#878699;font-size:10px">${p.score}</span></div>`).join(''):'<div class="empty" style="grid-column:1/-1">Share the QR code or room code to get started.</div>';
   const active=['ready','question','open','locked','finished'].includes(s.phase);
   $('hostQuestionArea').classList.toggle('hidden',active);
   $('hostLiveArea').classList.toggle('hidden',!active);
