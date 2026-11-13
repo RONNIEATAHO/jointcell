@@ -2,6 +2,7 @@ services:
   - type: web
     name: first-turn-quiz
     runtime: node
+    plan: free
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /
