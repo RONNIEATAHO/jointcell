@@ -183,13 +183,18 @@ async function route(req, res) {
       const choice = Number(data.choice);
       if (room.phase === 'question') {
         if (player.id !== room.assigneeId) throw Object.assign(new Error('The assigned learner gets the first turn.'), { status: 403 });
+        if (room.answered.has(player.id)) throw Object.assign(new Error('Your answer is already locked.'), { status: 409 });
+        room.answered.add(player.id);
         if (choice === q.correct) {
           const points = Math.max(100, Math.round(1000 * Math.max(0, room.deadline - Date.now()) / (q.duration * 1000)));
           player.score += points; room.attempts.push({ playerId: player.id, choice, correct: true, points }); lockQuestion(room); return json(res, 200, { ok: true, points, correct: true });
         }
-        room.assignedAttempts++;
         room.attempts.push({ playerId: player.id, choice, correct: false, points: 0 });
-        return json(res, 200, { ok: true, points: 0, correct: false, retry: true });
+        room.phase = 'open';
+        room.phaseStartedAt = Date.now();
+        room.deadline = Date.now() + q.duration * 1000;
+        if (!room.players.some(p => p.id !== room.assigneeId)) lockQuestion(room);
+        return json(res, 200, { ok: true, points: 0, correct: false, opened: room.phase === 'open' });
       }
       if (room.phase !== 'open') throw Object.assign(new Error('This question is closed.'), { status: 409 });
       if (player.id === room.assigneeId) throw Object.assign(new Error('You had the first turn and cannot retry this question.'), { status: 403 });
