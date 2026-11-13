@@ -29,8 +29,8 @@ Install the dependencies once with `npm install`. QR codes are generated locally
 ## Current MVP behavior
 
 - The host writes questions, four answers, the correct answer, a per-question duration, and whether the question has an exclusive first turn.
-- On an exclusive first turn, the host can choose the participant. That learner can retry wrong answers until time expires; a correct answer locks the question.
-- After timeout, all other participants may each answer once; the assigned learner is excluded. The host advances when the room is ready.
+- The host chooses any not-yet-asked question, assigns a participant when that question has an exclusive first turn, and opens it. Questions can be asked in any order.
+- On an exclusive first turn, the assigned learner gets one locked attempt. A correct answer locks the question; an incorrect answer opens it to the rest of the room immediately, with the assigned learner excluded.
 - Correct answers earn up to 1,000 points, with points decreasing as time runs out.
 - Hosts can import text-based PDFs in the browser. The importer recognizes numbered questions, four A–D choices, inline `Answer: B` lines, or an `Answer Key` section with one numbered answer per line. Imported questions are editable; missing answer keys are flagged for review. Scanned/image-only PDFs and unusual layouts need OCR or manual editing.
 - Participant answer tiles use four distinct colors. After answering, a participant sees whether their answer was correct and their points. When a question closes, the room sees the correct answer and response counts; the host also sees the submitted responses.
