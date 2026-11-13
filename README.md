@@ -16,6 +16,10 @@ node server.js
 
 The `npm start` command runs the same server and is the start command to use on a Node.js hosting service. The app reads the hosting platform's `PORT` environment variable and builds QR links from the public request origin.
 
+## Deploy the full app
+
+GitHub Pages can display the static interface, but it cannot run the Node.js API used to create rooms, generate QR codes, and handle answers. To run the complete quiz, deploy this repository as a Node web service. The included `render.yaml` configures the build and start commands for Render. Connect the `jointcell` repository in Render and deploy the Blueprint; use the resulting `onrender.com` URL for the host and participants. Render's Node service deployment steps are in its [official guide](https://render.com/docs/deploy-node-express-app).
+
 Open `http://localhost:3000` on the host computer. Participants on the same Wi-Fi can scan the host's QR code or open the local network address shown by the server. If Windows Firewall asks, allow Node.js on the private network so other devices can reach the room.
 
 Keep the Node server running while using the quiz. Opening `index.html` directly skips the server, so room creation and multiplayer controls cannot work.
