@@ -85,10 +85,10 @@ function publicState(room, player = null, host = false) {
     deadline: room.deadline, assigneeId: room.assigneeId,
     assigneeName: room.players.find(p => p.id === room.assigneeId)?.name || '',
     answeredCount, players: room.players.map(p => ({ id: p.id, name: p.name, score: p.score })),
-    question: q ? { text: q.text, options: q.options, duration: q.duration, firstTurn: q.firstTurn, ...(host || room.phase === 'locked' ? { correct: q.correct } : {}) } : null,
+    question: q ? { text: q.text, options: q.options, duration: q.duration, firstTurn: q.firstTurn, ...(host ? { correct: q.correct } : {}) } : null,
     me: player ? { id: player.id, name: player.name, score: player.score, answered: room.answered.has(player.id) } : null,
     myResult: playerAttempts.length ? playerAttempts[playerAttempts.length - 1] : null,
-    results: room.phase === 'locked' ? {
+    results: host && room.phase === 'locked' ? {
       correct: q?.correct,
       counts: (q?.options || []).map((_, index) => room.attempts.filter(a => a.choice === index).length),
       attempts: room.attempts.map(a => ({ name: room.players.find(p => p.id === a.playerId)?.name || 'Participant', choice: a.choice, correct: a.correct, points: a.points }))
