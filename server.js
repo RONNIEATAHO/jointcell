@@ -155,20 +155,29 @@ async function route(req, res) {
     if (url.pathname === '/api/start') {
       const { room, host } = roomFor(req, data.room); if (!host) throw Object.assign(new Error('Only the host can start the quiz.'), { status: 403 });
       if (room.phase !== 'lobby' || !room.players.length) throw Object.assign(new Error('Wait for at least one participant before starting.'), { status: 409 });
-      room.questionMode = data.mode === 'organizer' ? 'organizer' : 'sequential';
+      room.phase = 'modeSelect';
+      return json(res, 200, { ok: true });
+    }
+    if (url.pathname === '/api/start-mode') {
+      const { room, host } = roomFor(req, data.room); if (!host) throw Object.assign(new Error('Only the host can choose the question order.'), { status: 403 });
+      if (room.phase !== 'modeSelect' || !room.players.length) throw Object.assign(new Error('Return to the lobby and wait for participants before choosing a mode.'), { status: 409 });
+      if (!['sequential', 'organizer'].includes(data.mode)) throw Object.assign(new Error('Choose sequential or organizer-selected questions.'), { status: 400 });
+      room.questionMode = data.mode;
       if (room.questionMode === 'organizer') room.phase = 'selecting';
       else { room.questionIndex = 0; room.askedQuestions.add(0); beginQuestion(room, Date.now(), room.players[0].id); }
       return json(res, 200, { ok: true });
     }
     if (url.pathname === '/api/select-question') {
       const { room, host } = roomFor(req, data.room); if (!host) throw Object.assign(new Error('Only the host can choose a question.'), { status: 403 });
-      if (room.questionMode !== 'organizer' || room.phase !== 'selecting') throw Object.assign(new Error('Question selection is not available right now.'), { status: 409 });
+      const firstSelection = room.phase === 'modeSelect' && !room.questionMode;
+      if (!firstSelection && (room.questionMode !== 'organizer' || room.phase !== 'selecting')) throw Object.assign(new Error('Question selection is not available right now.'), { status: 409 });
       const questionIndex = Number(data.questionIndex);
       if (!Number.isInteger(questionIndex) || questionIndex < 0 || questionIndex >= room.questions.length) throw Object.assign(new Error('Choose a valid question.'), { status: 400 });
       if (room.askedQuestions.has(questionIndex)) throw Object.assign(new Error('That question has already been asked.'), { status: 409 });
       if (!room.players.length) throw Object.assign(new Error('Wait for at least one participant before opening a question.'), { status: 409 });
       const selected = room.questions[questionIndex];
       if (selected.firstTurn && !room.players.some(p => p.id === data.playerId)) throw Object.assign(new Error('Choose a participant for the first turn.'), { status: 400 });
+      room.questionMode = 'organizer';
       room.questionIndex = questionIndex;
       room.askedQuestions.add(questionIndex);
       beginQuestion(room, Date.now(), data.playerId || null);
