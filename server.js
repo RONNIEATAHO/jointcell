@@ -186,7 +186,11 @@ async function route(req, res) {
       if (room.askedQuestions.has(questionIndex)) throw Object.assign(new Error('That question has already been asked.'), { status: 409 });
       if (!room.players.length) throw Object.assign(new Error('Wait for at least one participant before opening a question.'), { status: 409 });
       const selected = room.questions[questionIndex];
+      const firstTurnDuration = Number(data.firstTurnDuration), openDuration = Number(data.openDuration);
+      if (!VALID_DURATIONS.includes(firstTurnDuration) || !VALID_DURATIONS.includes(openDuration)) throw Object.assign(new Error('Choose valid time limits for both turns.'), { status: 400 });
       if (selected.firstTurn && !room.players.some(p => p.id === data.playerId)) throw Object.assign(new Error('Choose a participant for the first turn.'), { status: 400 });
+      selected.firstTurnDuration = firstTurnDuration;
+      selected.openDuration = openDuration;
       room.questionMode = 'organizer';
       room.questionIndex = questionIndex;
       room.askedQuestions.add(questionIndex);

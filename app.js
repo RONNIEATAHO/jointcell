@@ -54,8 +54,8 @@ function renderResultsPage(s){
   document.body.classList.remove('answer-correct','answer-wrong');
   if(!isHost&&s.me?.name){$('playerGreeting').textContent=`You're back, ${s.me.name}!`;localStorage.setItem('firstturn-name-'+room,s.me.name)}
   if(!isHost&&s.myResult)document.body.classList.add(s.myResult.correct?'answer-correct':'answer-wrong');
-  $('resultHeading').textContent=isHost?`Question ${s.questionIndex+1} results`:s.myResult?.correct?'Correct!':'Wrong answer';
-  $('resultSub').textContent=isHost?'Review the correct answer and participant responses before moving on.':'';
+  $('resultHeading').textContent=isHost?`Question ${s.questionIndex+1} results`:s.myResult?(s.myResult.correct?'Correct!':'Wrong answer'):'Time out';
+  $('resultSub').textContent=isHost?'Review the correct answer and participant responses before moving on.':s.myResult?'':'Time expired before you submitted an answer.';
   $('resultScore').previousElementSibling.textContent=isHost?'ROOM CODE':'YOUR SCORE';$('resultScore').textContent=isHost?s.code:(s.me?.score||0);
   $('resultContent').innerHTML=isHost?resultsPanel(s,true):`<section class="participant-result ${s.myResult?.correct?'is-correct':s.myResult?'is-wrong':'no-answer'}" role="status" aria-live="polite"><div class="feedback-emoji" aria-hidden="true">${s.myResult?.correct?'\u{1F389}':s.myResult?'\u{274C}':'\u{23F1}'}</div><div class="position-badge">Your position <strong>#${rank||'-'}</strong><span>of ${s.players.length} participants</span></div></section>`;
   if(isHost)renderLeaderboard('resultsLeaderboard',s.players);
