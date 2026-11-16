@@ -12,7 +12,9 @@ function updateBackButton(){const b=$('navBack'),inResults=!$('resultsPage').cla
 async function leaveCurrentPage(){
   if(!$('resultsPage').classList.contains('hidden')){resultsDismissed=true;if(latestState)renderState(latestState);return}
   if(role==='join'){room='';$('roomCode').value='';$('playerName').value='';history.replaceState({},'',joinPath());$('playerName').focus();return}
-  const wasHost=role==='host',leftRoom=room;
+  const wasHost=role==='host',isPlayer=role==='player',leftRoom=room;
+  if(isPlayer&&!confirm('Leave this quiz and return to the join page? Your score will be saved so you can rejoin on this device.'))return;
+  if(wasHost&&!confirm('End this quiz session and return to the index page?'))return;
   if(wasHost){try{await api('end',{room})}catch(e){alertMsg(e.message);return}localStorage.removeItem('firstturn-host-'+room)}
   clearTimeout(poller);
   if(!wasHost){localStorage.setItem('firstturn-last-room',leftRoom);$('roomCode').value=leftRoom;$('playerName').value=localStorage.getItem('firstturn-name-'+leftRoom)||''}
@@ -168,7 +170,7 @@ function renderPlayer(s){
 }
 function durationOptions(value){return [10,15,20,30,45,60].map(n=>`<option value="${n}" ${Number(value)===n?'selected':''}>${n} seconds</option>`).join('')}
 async function resetAllScores(){if(!confirm('Reset every participant score to zero?'))return;try{await api('reset-scores',{room});alertMsg('All participant scores are now zero.');await poll()}catch(e){alertMsg(e.message)}}
-async function exitOrganizer(){try{await api('end',{room})}catch(e){alertMsg(e.message);return}clearTimeout(poller);localStorage.removeItem('firstturn-host-'+room);room='';token='';lastState='';latestState=null;resultsDismissed=false;history.replaceState({},'',location.pathname);show('home')}
+async function exitOrganizer(){if(!confirm('End this quiz session and return to the index page?'))return;try{await api('end',{room})}catch(e){alertMsg(e.message);return}clearTimeout(poller);localStorage.removeItem('firstturn-host-'+room);room='';token='';lastState='';latestState=null;resultsDismissed=false;history.replaceState({},'',location.pathname);show('home')}
 function timeLeft(deadline){return deadline?Math.max(0,Math.ceil((deadline-Date.now())/1000))+'s':'-'}
 function renderLeaderboard(id,players){$(id).innerHTML=players.length?players.slice().sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name)).map((p,i)=>`<div class="rank-row"><span>${['1','2','3'][i]||i+1}</span><span>${esc(p.name)}</span><b>${p.score}</b></div>`).join(''):'<p class="note">Scores appear when players join.</p>'}
 function restore(){const params=new URLSearchParams(location.search);const join=params.get('room'),isJoinPath=location.pathname.endsWith('/join');if(join){room=join.toUpperCase();$('roomCode').value=room;$('playerName').value=localStorage.getItem('firstturn-name-'+room)||'';token=localStorage.getItem('firstturn-player-'+room)||'';if(token){show('player');startPolling()}else{show('join');$('playerName').focus();if(!isJoinPath)history.replaceState({},'',joinPath()+'?room='+room)}}else if(isJoinPath){const savedRoom=localStorage.getItem('firstturn-last-room')||'';$('roomCode').value=savedRoom;$('playerName').value=localStorage.getItem('firstturn-name-'+savedRoom)||'';show('join');$('playerName').focus()}const host=params.get('host');if(host){room=host.toUpperCase();token=localStorage.getItem('firstturn-host-'+room)||'';if(token){show('host');startPolling()}}}
