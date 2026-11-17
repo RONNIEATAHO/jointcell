@@ -137,7 +137,7 @@ async function route(req, res) {
         const options = Array.isArray(q.options) ? q.options.map(a => String(a || '').trim().slice(0, 120)) : [];
         const correct = Number(q.correct), duration = Number(q.duration);
         const firstTurnDuration = Number(q.firstTurnDuration || duration), openDuration = Number(q.openDuration || duration);
-        if (!text || options.length !== 4 || options.some(a => !a) || !Number.isInteger(correct) || correct < 0 || correct > 3 || !VALID_DURATIONS.includes(firstTurnDuration) || !VALID_DURATIONS.includes(openDuration)) throw Object.assign(new Error('Every question needs four answers, one correct answer, and valid time limits.'), { status: 400 });
+        if (!text || ![2,4].includes(options.length) || options.some(a => !a) || !Number.isInteger(correct) || correct < 0 || correct >= options.length || !VALID_DURATIONS.includes(firstTurnDuration) || !VALID_DURATIONS.includes(openDuration)) throw Object.assign(new Error('Every question needs two or four answers, one correct answer, and valid time limits.'), { status: 400 });
         return { text, options, correct, duration, firstTurnDuration, openDuration, firstTurn: Boolean(q.firstTurn) };
       });
       const gameCode = code();
@@ -245,7 +245,7 @@ async function route(req, res) {
         if (room.answered.has(player.id)) throw Object.assign(new Error('Your answer is already locked.'), { status: 409 });
         room.answered.add(player.id);
         if (choice === q.correct) {
-          const points = Math.max(100, Math.round(1000 * Math.max(0, room.deadline - Date.now()) / (q.firstTurnDuration * 1000)));
+          const points = 5;
           player.score += points; room.attempts.push({ playerId: player.id, choice, correct: true, points }); lockQuestion(room); return json(res, 200, { ok: true, points, correct: true });
         }
         room.attempts.push({ playerId: player.id, choice, correct: false, points: 0 });
@@ -261,7 +261,7 @@ async function route(req, res) {
       room.answered.add(player.id);
       let points = 0;
       if (choice === q.correct) {
-        points = Math.max(100, Math.round(1000 * Math.max(0, room.deadline - Date.now()) / (q.openDuration * 1000)));
+        points = 2;
       }
       room.attempts.push({ playerId: player.id, choice, correct: choice === q.correct, points });
       return json(res, 200, { ok: true, submitted: true });
