@@ -162,7 +162,7 @@ function renderPlayer(s){
     try{
       const out=await api('answer',{room,choice:chosen});
       chosen=null;
-      if(out.submitted)alertMsg('Answer locked. Your result will appear when time is up.');
+      if(out.submitted)alertMsg(out.correct?`Answer locked. You earned ${out.points} points.`:'Answer locked. You earned 0 points.');
       else if(out.correct)alertMsg(`\u{1F389} Correct! You earned ${out.points} points.`);
       else alertMsg('\u{274C} Wrong answer. You earned 0 points.');
       await poll();

@@ -264,7 +264,8 @@ async function route(req, res) {
         points = 2;
       }
       room.attempts.push({ playerId: player.id, choice, correct: choice === q.correct, points });
-      return json(res, 200, { ok: true, submitted: true });
+      lockQuestion(room);
+      return json(res, 200, { ok: true, submitted: true, points, correct: choice === q.correct });
     }
     if (url.pathname === '/api/next') {
       const { room, host } = roomFor(req, data.room); if (!host) throw Object.assign(new Error('Only the host can move to the next question.'), { status: 403 });
