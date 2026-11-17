@@ -130,6 +130,7 @@ function renderPlayer(s){
   if(s.me?.name){$('playerGreeting').textContent=`Ready, ${s.me.name}?`;localStorage.setItem('firstturn-name-'+room,s.me.name)}
   const area=$('playerArea');
   if(s.phase==='selecting'||s.phase==='modeSelect'){area.innerHTML='<div class="empty">The organizer is preparing the next question...</div>';return}
+  if(s.phase==='question'&&s.assigneeId!==s.me?.id){document.body.classList.remove('answer-correct','answer-wrong');area.innerHTML='<div class="waiting-private"><div class="waiting-pulse" aria-hidden="true">⌛</div><h2>First turn in progress</h2><p>The assigned participant is answering. The question will appear here if it opens to everyone.</p></div>';return}
   if(s.phase==='lobby'||s.phase==='ready'){
     area.innerHTML='<div class="empty">You are in! Waiting for the host to start the question...</div>';
     return;
