@@ -93,6 +93,7 @@ function publicState(room, player = null, host = false) {
     remainingPct: room.phase === 'ready' ? 100 : room.deadline ? Math.max(0, Math.min(100, (room.deadline - now) / (((room.phase === 'question' ? q?.firstTurnDuration : q?.openDuration) || 1) * 10))) : 0,
     deadline: room.deadline, assigneeId: room.assigneeId,
     assigneeName: room.players.find(p => p.id === room.assigneeId)?.name || '',
+    assignedFirstTurnSuccess: room.attempts.some(a => a.playerId === room.assigneeId && a.correct),
     answeredCount, players: room.players.map(p => ({ id: p.id, name: p.name, score: p.score })),
     question: q && (host || room.phase !== 'question' || player?.id === room.assigneeId) ? { text: q.text, options: q.options, duration: room.phase === 'question' ? q.firstTurnDuration : q.openDuration, firstTurnDuration: q.firstTurnDuration, openDuration: q.openDuration, firstTurn: q.firstTurn, ...(host ? { correct: q.correct } : {}) } : null,
     me: player ? { id: player.id, name: player.name, score: player.score, answered: room.answered.has(player.id) } : null,
